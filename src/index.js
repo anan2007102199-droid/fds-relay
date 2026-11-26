@@ -1,4 +1,4 @@
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const CALL_TIMEOUT_MS = 110000;
 
 const TOOLS = [
@@ -32,6 +32,26 @@ const TOOLS = [
       additionalProperties: false,
     },
     annotations: { title: "打开应用", readOnlyHint: false, destructiveHint: false },
+  },
+  {
+    name: "fds_tools",
+    description: "列出 FDS 在手机上能做的全部工具（滑动、输入文字、返回键、长按、文件、网页、剪贴板、通知等），含工具 id 和参数名。不确定怎么做时先查一次。",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    annotations: { title: "工具清单", readOnlyHint: true },
+  },
+  {
+    name: "fds_call",
+    description: "调用任意一个 FDS 工具。tool 填 fds_tools 里的工具 id（如 screen.swipe、screen.type_text、screen.back），args 填它的参数对象。",
+    inputSchema: {
+      type: "object",
+      properties: {
+        tool: { type: "string", description: "FDS 工具 id" },
+        args: { type: "object", description: "参数" },
+      },
+      required: ["tool"],
+      additionalProperties: false,
+    },
+    annotations: { title: "调用 FDS 工具", readOnlyHint: false, destructiveHint: false },
   },
 ];
 
@@ -99,8 +119,9 @@ async function handleRpc(m, hub) {
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: "FDS 手机", version: VERSION },
         instructions:
-          "这是用户自己的安卓手机（通过 FDS）。每个操作都会在手机上弹窗等用户点允许，被拒绝就停下问用户。" +
-          "先 screen_read 看屏幕，再决定点哪里；每步之后再读一次确认结果。不要输入密码，不要付款或发送消息。",
+          "这是用户自己的安卓手机（通过 FDS）。只读操作直接执行；其他操作第一次会在手机上弹窗等用户点允许，被拒绝就停下问用户。" +
+          "先 screen_read 看屏幕，再决定点哪里；每步之后再读一次确认结果。screen_read、screen_tap、open_app 之外的能力用 fds_tools 查、fds_call 调。" +
+          "设置等受保护的应用可能只能读不能点，银行支付类完全不能碰。不要输入密码，不要付款或发送消息。",
       });
     }
     case "ping": return ok({});
@@ -208,3 +229,4 @@ export class PhoneHub {
     return this.webSocketClose(ws);
   }
 }
+
