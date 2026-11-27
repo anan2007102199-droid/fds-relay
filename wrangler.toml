@@ -9,3 +9,7 @@ class_name = "PhoneHub"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["PhoneHub"]
+
+[vars]
+# 1 = 开放公用入口：每台手机用自己随机生成的密钥接入（FDS 里“生成我的入口”）
+OPEN_ENTRY = "1"

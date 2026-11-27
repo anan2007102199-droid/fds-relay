@@ -1,4 +1,4 @@
-const VERSION = "0.2.0";
+const VERSION = "0.3.0";
 const CALL_TIMEOUT_MS = 110000;
 
 const TOOLS = [
@@ -62,6 +62,13 @@ function sameSecret(a, b) {
   return diff === 0;
 }
 
+// 哪个“房间”：站长自己的密钥 → phone；公用入口开着时，任何 32~64 位字母数字的随机密钥各占一个房间，互相看不到
+function hubName(secret, env) {
+  if (env.FDS_SECRET && env.FDS_SECRET.length >= 16 && sameSecret(secret, env.FDS_SECRET)) return "phone";
+  if (env.OPEN_ENTRY === "1" && /^[A-Za-z0-9]{32,64}$/.test(secret)) return "u:" + secret;
+  return null;
+}
+
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), {
     status,
@@ -75,11 +82,9 @@ export default {
     const parts = url.pathname.split("/").filter(Boolean);
     if (parts.length === 0) return new Response("FDS relay " + VERSION);
     const [kind, secret] = parts;
-    if (!env.FDS_SECRET || env.FDS_SECRET.length < 16) {
-      return new Response("FDS_SECRET missing (16+ chars)", { status: 500 });
-    }
-    if (!sameSecret(secret || "", env.FDS_SECRET)) return new Response("not found", { status: 404 });
-    const hub = env.HUB.get(env.HUB.idFromName("phone"));
+    const room = hubName(secret || "", env);
+    if (!room) return new Response("not found", { status: 404 });
+    const hub = env.HUB.get(env.HUB.idFromName(room));
     if (kind === "phone" || kind === "status") return hub.fetch(request);
     if (kind === "mcp") return handleMcp(request, hub);
     return new Response("not found", { status: 404 });
